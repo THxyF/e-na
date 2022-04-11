@@ -1,0 +1,53 @@
+.solution{
+    background-color: coral;
+    margin: 0.5%;
+}
+
+.in_box{
+    background-color: orange;
+    margin: 0.5%;
+}
+.out_box{
+    background-color: greenyellow;
+    margin: 0.5%;
+}
+.acid_data{
+    background-color: lemonchiffon;
+    margin: 0.5%;
+}
+.acid_box{
+    background-color: yellow;
+    margin: 0.5%;
+}
+
+.charge{
+    width: 25px;
+}
+
+.pKa{
+    width: 50px;
+}
+
+.pKsol{
+    width: 50px;
+}
+
+#header-wrap{
+    background-color: azure;
+}
+
+.header-middle{
+    background-color: beige;
+}
+
+footer{
+    background-color: aqua;
+}
+
+#contents{
+    background-color: #FFA0A0; 
+}
+
+.header-title{
+    font-size: 80px;
+}
