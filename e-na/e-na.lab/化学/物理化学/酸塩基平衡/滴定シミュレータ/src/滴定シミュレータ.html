@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title lang="ja">滴定シミュレータ</title>
+    <link rel="stylesheet" href="./滴定シミュレータ.css" />
+    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" }},
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+          processEscapes: true
+        },
+        "HTML-CSS": { matchFontHeight: false },
+        displayAlign: "left",
+        displayIndent: "2em"
+      });
+    </script>
+  </head>
+  <body>
+    <div id="header-wrap">
+      <header>
+        <a></a>
+        <h1 class="header-title">e-na.lab:Chemistry</h1>
+        <p>化学のまとめ</p>
+      </header>
+    </div>
+    <div class="header-middle">
+        <p>top>><a href="../../../../../src/e-na.lab.html">e-na.lab</a>>><a href="../../../src/物理化学.html">物理化学</a>>><a href="../../src/酸塩基平衡.html">酸塩基平衡</a>>>滴定シミュレータ</p>
+    </div>
+    <div id="contents">
+      <div id="main-title">
+        <h1>滴定をシミュレートできます</h1>
+      </div>
+      <div id="simulation">
+        <div class="solutions"></div>
+        <input
+          type="button"
+          class="solution-add"
+          value="溶液の追加"
+          onclick="addSolution(this);"
+        />
+      </div>
+      <div id="acid-preset">
+        <h1>プリセット</h1>
+        <div class="hide-toggle">
+          <label for="label2">クリックして表示</label>
+          <input type="checkbox" id="label2" onclick="reloadPreset(this);"/>
+          <div class="hidden-by-checked">
+            <div class="acid-preset-table"></div>
+            <div class="acid-preset-register">
+              <div class="acid-preset-box">
+                <span class="acid-preset-tab">
+                  <h3 class="acid-preset-title">
+                    <input class="name" type="text" value="入力例" />
+                  </h3>
+                </span>
+
+                <div class="acid-preset-data">
+                  <span class="chemical">
+                    電荷
+                    <input
+                      class="charge"
+                      type="text"
+                      value="0"
+                      onkeydown="charge_reload(this);"
+                    />:
+                    <input class="formula" type="text" value="H2SO4" />
+                  </span>
+                  <div class="ions"></div>
+                  <input
+                    type="button"
+                    class="pKa-add"
+                    value="電離定数の追加"
+                    onclick="addPresetpKa(this);"
+                  />
+                  <input
+                    type="button"
+                    class="pKa-del"
+                    value="電離定数の削除"
+                    onclick="remove_pKa(this);"
+                  />
+                </div>
+              </div>
+              <input
+                type="button"
+                class="acid-preset-add"
+                value="プリセットの登録"
+                onclick="registerPreset(this);"
+              />
+              <input
+                type="button"
+                class="acid-preset-reset"
+                value="プリセットの初期化"
+                onclick="resetPreset(this);"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="mixing">
+        <h1>溶液の混合</h1>
+        <div class="hide-toggle2">
+        <label for="label3">クリックして表示</label>
+        <input type="checkbox" id="label3" class="hiding-toggle"/>
+        <div class="hidden-by-checked">
+            <div id="mixing-boxes">
+                <div id="solution-selections"></div>
+            </div>
+            <input
+                type="button"
+                id="mix"
+                value="混合開始"
+                onclick="mix();"
+              />
+            <div id="titration">
+                <select id="titration-target-selector"></select>
+                <input
+                type="button"
+                id="titration-button"
+                value="滴下開始"
+                onclick="titration();"
+                />
+            </div>
+        </div></div>
+      </div>
+      <div id="explain">
+        <h1>説明</h1>
+        <div class="hide-toggle">
+        <label for="label1">クリックして表示</label>
+        <input type="checkbox" id="label1"/>
+        <div class="hidden-by-checked">
+          <h2>1.基本方針</h2>
+          <p>
+            平衡定数、プロトン収支、イオン収支の式(電荷保存則以外)からある$pH$に対する電荷の合計を計算する。これは現実の近傍で単調増加なので二分探査で$pH$を決定する。この$pH$から他のイオンの濃度を計算する。
+          </p>
+          <h2>2.立式</h2>
+          <h3>2-1.平衡定数</h3>
+          <p>
+            $n$種類の酸を考慮することにする。
+            $i$番目$^{†1}$の酸は$m_i$価であり、もっとも電離していない状態での電荷を$e_i$、その$j$番目$^{†1}$の酸解離定数を
+            \[
+              K_{ij}:=\frac{[A^iH_{m_i-j-1}^{(j-e_i+1)-}\,\,][H^+]}{[A^iH_{m_i-j}^{(j-e_i)-}\,\,]}\quad(i\in[0,n-1],\,j\in[0,m_i-1])
+            \]
+            とする。($\sum_{i=0}^{n-1}m_i$本の式)
+            <br />
+            また、溶媒の自己プロトリシス定数を、
+            \[K_{\mathrm{sol}}=[H^+][\mathrm{sol}^-]\]
+            とする。
+          </p>
+          <h3>2-2.イオン収支</h3>
+          <p>
+            $m_i$価の各酸について、化学種は$m_i+1$個あるから、          各化学種の投入量を化学種Xの初期濃度を$[X]_0$として
+            \[
+              c_{ij}:=[A^{i}H_{m_i-j}^{(j-e_i)-}\,\,]_0\quad(i\in[0,n],\,j\in[0,m_i])\\
+              c_i:=\sum_{j=0}^{m_i}c_{ij}
+            \]
+            とすると、イオン収支から、
+            \[
+              c_i=\sum_{j=0}^{m_i}[A^{i}H_{m_i-j}^{(j-e_i)-}\,\,]
+            \]
+            である。($n$本の式)
+          </p>
+          <h3>2-3.電荷保存則</h3>
+          <p>
+            初期時点での総電荷は、溶媒が中性だとして、
+            \[P:=\sum_{i=0}^{n-1}\sum_{j=0}^{m_i}(e_i-j)c_{ij}\]
+            であり、現在のそれは
+            \[P=\sum_{i=0}^{n-1}\sum_{j=0}^{m_i}(e_i-j)[A^{i}H_{m_i-j}^{(j-e_i)-}\,\,]+[H^+]-[\mathrm{sol}^-]\]
+            である。
+          </p>
+          <h2>3.自由度</h2>
+          <p>
+            化学種は$i$番目の酸について$m_i+1$個あり、溶媒から生じるものを含めて合計で
+            \[\sum_{i=0}^{n-1}(m_i+1)+2=\sum_{i=0}^{n-1}m_i+n+2\]
+            あり、上の議論から式も同じ数あるので解析的に解ける。
+          </p> 
+          <h2>4.計算</h2>
+          <p>
+            <strong>以下、[]内の電荷は省略し、"#"で表す。</strong>
+            <br/>
+            (2-1.1)から
+            \[
+              [A^iH_{m_i-j}^{\#}]=\frac{[H^+]}{K_{ij}}[A^iH_{m_i-(j+1)}^{\#}]=\cdots=\frac{[H^+]^{m_i-j}}{\prod_{k=j}^{m_i-1}K_{ik}}[{A^i}^{\#}]=\frac{\prod_{k=0}^{j-1}K_{ik}}{\prod_{k=0}^{m_i-1}K_{ik}}[H^+]^{m_i-j}[{A^i}^{\#}]
+            \]
+            計算のため、
+            \[
+              A_{ij}:=\prod_{k=0}^{j-1}K_{ik}\\
+              B_{ij}:=[H^+]^{m_i-j}A_{ij}\\
+              M_i:=\frac{c_i}{\sum_{j=0}^{m_i}B_{ij}}
+            \]
+            とすると、
+            \[
+              [A^iH_{m_i-j}^{\#}]=\frac{B_{ij}}{B_{i\,m_i}}[{A^i}^{\#}]
+            \]
+            よって(2-2.3)から
+            \[
+              c_i=\frac{[{A^i}^{\#}]}{B_{i\,m_i}}\sum_{j=0}^{m_i}B_{ij}
+            \]
+            したがって${[{A^i}^{\#}]}$から、
+            \[
+              [A^iH_{m_i-j}^{\#}]=M_iB_{ij}
+            \]
+            結果的に、(2-3.2)は(2-1.2)も使って、
+            \[
+              \sum_{i=0}^{n-1}M_i\sum_{j=0}^{m_i-1}(e_i-j)B_{ij}+[H^+]-\frac{K_{\mathrm{sol}}}{[H^+]}-P=0
+            \]
+            ここで$(左辺)=:f(-\log_{10}[H^+])$と置く。
+          </p>
+          <h2>5.近似</h2>
+          <h3>5-1.化学的意味</h3>
+          <p>$f(x)>0$の時、実在の溶液に</p>
+          <h3>5-2.二分探査</h3>
+          <p>
+            まず、$pH\in\mathbb R$より探査範囲が無限なので有界にする。
+            <br \>
+            具体的には、適当に$d_0>0, pH_0$を選び
+            \[
+              d := \frac{f(pH_0)}{|f(pH_0)|}d_0
+            \]
+            とすると、
+            \[
+              \exists n\in\mathbb{N}\,s.t.\,f(pH_0+nd)f(pH+(n+1)d)<0
+            \]
+            であり、この時$pH\in [pH_0+nd,\,pH_0+(n+1)d]$である。
+          </p>
+        </div>
+        </div>
+      </div>
+    </div>
+    <div id="footer-wrap">
+      <footer>
+        <div class="item">
+          <h3><a href="">e-na.lab</a></h3>
+        </div>
+        <div class="item">
+          <h3><a href="">化学</a></h3>
+        </div>
+        <div class="item">
+          <h3><a href="">物理</a></h3>
+        </div>
+        <div class="item">
+          <h3><a href="">数学</a></h3>
+        </div>
+      </footer>
+    </div>
+    <div class="footer-bottom">
+      <a href="">top</a>
+        <input
+          type="button"
+          onclick="saveCookie();"
+        />
+        <input
+          type="button"
+          onclick="loadCookie();"
+        />
+    </div>
+    <script type="text/javascript" src="./滴定シミュレータ.js"></script>
+  </body>
+</html>

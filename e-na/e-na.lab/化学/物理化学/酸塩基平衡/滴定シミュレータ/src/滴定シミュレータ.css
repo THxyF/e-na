@@ -1,0 +1,130 @@
+.solution{
+    background-color: coral;
+    margin: 0.5%;
+}
+
+.in-box{
+    background-color: orange;
+    margin: 0.5%;
+}
+.out-box{
+    background-color: greenyellow;
+    margin: 0.5%;
+}
+.acid-data{
+    background-color: lemonchiffon;
+    margin: 0.5%;
+}
+.acid-box{
+    background-color: yellow;
+    margin: 0.5%;
+}
+
+.charge{
+    width: 25px;
+}
+
+.pKa{
+    width: 50px;
+}
+
+.pKsol{
+    width: 50px;
+}
+
+.acid-preset-box{
+    background-color: coral;
+    width: 500px;
+}
+
+.acid-preset-table .acid-preset-box{
+    background-color: orange;
+}
+
+#header-wrap{
+    background-color: azure;
+}
+
+.header-middle{
+    background-color: beige;
+}
+
+footer{
+    background-color: aqua;
+}
+
+#contents{
+    background-color: #FFA0A0; 
+}
+
+.header-title{
+    font-size: 80px;
+}
+
+/*ボタン装飾*/
+.hide-toggle label {
+    padding: 15px;
+    font-weight: bold;
+    border: solid 2px black;
+    cursor :pointer;
+}
+
+/*ボタンホバー時*/
+.hide-toggle label:hover {
+    background: #efefef;
+}
+
+/*チェックは見えなくする*/
+.hide-toggle input[type="checkbox"] {
+    display: none;
+}
+
+/*中身を非表示にしておく*/
+.hide-toggle .hidden-by-checked {
+    height: 0;
+    padding: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: 0.8s;
+}
+
+/*クリックで中身表示*/
+.hide-toggle input:checked ~ .hidden-by-checked {
+    padding: 10px 0;
+    height: auto;
+    opacity: 1;
+}
+
+/*ボタン装飾*/
+.hide-toggle2 label {
+    padding: 5px;
+    font-weight: bold;
+    border: solid 2px black;
+    cursor :pointer;
+}
+
+/*ボタンホバー時*/
+.hide-toggle2 label:hover {
+    background: #efefef;
+}
+
+/*チェックは見えなくする*/
+.hide-toggle2 input[type="checkbox"][class="hiding-toggle"] {
+    display: none;
+}
+
+/*中身を非表示にしておく*/
+.hide-toggle2 .hidden-by-checked {
+    height: 0;
+    padding: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: 0.8s;
+}
+
+/*クリックで中身表示*/
+.hide-toggle2 input:checked ~ .hidden-by-checked {
+    padding: 10px 0;
+    height: auto;
+    opacity: 1;
+}
