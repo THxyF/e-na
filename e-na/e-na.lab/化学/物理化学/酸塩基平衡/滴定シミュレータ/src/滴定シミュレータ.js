@@ -47,6 +47,39 @@ class Util {
   }
 }
 
+class Indicator{
+    constructor(name, n=1, pHs=[], colors=[]){
+        this.name = name;
+        this.n = n;
+        this.pHs = Array.isArray(pHs) ? pHs : [pHs];
+        this.colors = Array.isArray(colors) ? colors : [colors];
+    }
+    
+    getColor(pH){
+        let index = this.pHs.findIndex(pHi => (pHi >= pH));
+        if (index === -1)index = this.n;
+        
+        return this.colors[index];
+    }
+}
+
+class IndicatorCollecter{
+    constructor(indicators){
+        this.indicators = indicators;
+    }
+    
+    genHTMLOptions(){
+        let str = "";
+        this.indicators.forEach((ind, i) => {
+            str += `<option value="${i}">${ind.name}</option>`;
+        })
+        
+        console.log(this);
+        
+        return str;
+    }
+}
+
 class Acid {
   //ほかのコードでこれだけ使うかも
   constructor(n = 1, pk = [0], charge = 0) {
@@ -251,11 +284,12 @@ class Acids {
 }
 
 class Solution extends Acids {
-  constructor(pksol = 14, data = [], volume = 1, name = "") {
+  constructor(pksol = 14, data = [], volume = 1, indicator = new Indicator("none", 0), name = "") {
     super(pksol, data);
 
     this.name = name || `unknown${Date.now()}`;
     this.volume = volume;
+    this.indicator = indicator;
   }
     
   clone(name = "clone of "+this.name){
@@ -345,8 +379,8 @@ class Solution extends Acids {
 
   propertyHTML(i) {
     let digit = Math.pow(10, 10);
-    return `<div class="solution-property">
-         <span class="solution-id">solution No.<span class="solution-id-val">${
+    return `<div class="solution-property" id="solution-property-${i}">
+         <span class="solution-id">solution No.<span class="solution-id-val" id="solution-id-val-${i}">${
            i + 1
          }</span></span> a.k.a. 
          <span class="name">${this.name}</span>
@@ -403,7 +437,7 @@ class SolutionCollecter {
     
   remove(index) {
     this.solutions.splice(index, 1);
-    this.defoLen --;
+    if(index < this.defoLen)this.defoLen --;
   }
 
   propertyHTML() {
@@ -420,12 +454,18 @@ class SolutionCollecter {
     console.log(this.solutions);
     str += this.solutions.map(
         (sol, i) =>
-          `<div class="solution-selection"><input class="selector" id="solution-selector-${i}" type="checkbox"${!sol.valid?" disabled=\'disabled\'":""}>solution No.${i+1}<span id="solution-selector-invalid-${i}"${sol.valid?" style=\"visibility:hidden\"":""}>(invalid)</span>: <input class="amount" id="solution-selector-amount-${i}" type="text" value=0${!sol.valid?" disabled=\'disabled\'":""}> mL<div class="hide-toggle2">
+          `<div class="solution-selection"><input class="selector" id="solution-selector-${i}" type="checkbox"${!sol.valid?" disabled=\'disabled\'":""}>solution No.<span id="solution-selector-number-${i}">${i+1}</span><span id="solution-selector-invalid-${i}"${sol.valid?" style=\"visibility:hidden\"":""}>(invalid)</span>: <input class="amount" id="solution-selector-amount-${i}" type="text" value=0${!sol.valid?" disabled=\'disabled\'":""}> mL<div class="hide-toggle2">
         <label for="label-solution-selector-${i}">溶液の詳細</label>
         <input type="checkbox" id="label-solution-selector-${i}" class="hiding-toggle"${!sol.valid?" readonly":""}/>
         <div class="hidden-by-checked">` +
           sol.propertyHTML(i) +
-          "</div></div></div>"
+          `</div></div><input
+              type="button" 
+              class="solution-del" 
+              id="solution-remove-${i}"
+              value="${i<this.defoLen?"リセット":"削除"}" 
+              onclick="removeSelectionSolution(this);"
+            /></div>`
       )
       .filter(t => t.length > 0).join("\n<br/>");
     str += "</div>";
@@ -990,20 +1030,31 @@ function addSolution(target) {
     
   let sol = new Solution();
     
-  userSolutions.push(sol);
-  console.log(userSolutions);
-    
-  let i = userSolutions.defoLen - 1;
-  let str = `<div class="solution-selection"><input class="selector" id="solution-selector-${i}" type="checkbox" disabled=\'disabled\'>solution No.${i+1}<span id="solution-selector-invalid-${i}">(invalid)</span>: <input class="amount" id="solution-selector-amount-${i}" type="text" value=0 disabled=\'disabled\'> mL<div class="hide-toggle2">
+  let i = userSolutions.defoLen;
+  let str = `<div class="solution-selection"><input class="selector" id="solution-selector-${i}" type="checkbox" disabled=\'disabled\'>solution No.<span id="solution-selector-number-${i}">${i+1}</span><span id="solution-selector-invalid-${i}">(invalid)</span>: <input class="amount" id="solution-selector-amount-${i}" type="text" value=0 disabled=\'disabled\'> mL<div class="hide-toggle2">
         <label for="label-solution-selector-${i}">溶液の詳細</label>
         <input type="checkbox" id="label-solution-selector-${i}" class="hiding-toggle"/>
         <div class="hidden-by-checked">` +
           sol.propertyHTML(i) +
-          "</div></div></div>";
+          `</div></div><input
+              type="button" 
+              class="solution-del" 
+              id="solution-remove-${i}"
+              value="リセット" 
+              onclick="removeSelectionSolution(this);"
+            /></div>`;
   let elem = document.getElementById("solution-selections");
 
   if(i === 0)elem.insertAdjacentHTML("beforeend", str);
-  else elem.children[i - 1].insertAdjacentHTML("afterend", str);
+  else {
+      mixSlide(userSolutions.defoLen);
+      elem.children[i - 1].insertAdjacentHTML("afterend", str);
+  }
+  userSolutions.push(sol);
+  titrationReload();
+  console.log(userSolutions);
+    
+  
   reloadSolution(target.parentNode.children[0]);
 }
 function removeSolution(target) {
@@ -1013,10 +1064,12 @@ function removeSolution(target) {
   console.log(index);
 
   userSolutions.remove(index);
+    titrationReload();
 
   document.getElementById("solution-selections").children[index].remove();
   console.log(userSolutions);
   target.parentNode.parentNode.remove();
+  mixUnSlide(index+1);
   reloadSolution(sols);
 }
 
@@ -1034,7 +1087,8 @@ function submit(target) {
 
   userSolutions.solutions.splice(index, 1, sol);
   console.log(userSolutions);
-  document.getElementById("solution-selections").children[index].children[3].children[2].innerHTML = sol.propertyHTML(index);
+    
+  document.getElementById(`solution-property-${index}`).innerHTML = sol.propertyHTML(index);
   if(sol.valid){
       document.getElementById(`solution-selector-${index}`).disabled = false;
   document.getElementById(`solution-selector-amount-${index}`).disabled = false;
@@ -1047,6 +1101,41 @@ function submit(target) {
 
     }
   out.innerHTML = sol.property().replace(/\n/g, "<br>");
+}
+
+function mixSlide(index) {
+  let max = userSolutions.solutions.length - 1;
+  for(let i = max; i >= index; --i){
+      
+      document.getElementById(`solution-id-val-${i}`).textContent = i+2;
+      document.getElementById(`solution-selector-number-${i}`).textContent = i+2;
+      document.getElementById(`solution-selector-${i}`).id = `solution-selector-${i+1}`;
+  document.getElementById(`solution-selector-amount-${i}`).id = `solution-selector-amount-${i+1}`;
+    document.getElementById(`solution-selector-invalid-${i}`).id = `solution-selector-invalid-${i+1}`;
+      document.getElementById(`solution-remove-${i}`).id = `solution-remove-${i+1}`;
+      document.getElementById(`label-solution-selector-${i}`).parentNode.children[0].htmlFor = `label-solution-selector-${i+1}`;
+      document.getElementById(`label-solution-selector-${i}`).id = `label-solution-selector-${i+1}`;
+      document.getElementById(`solution-property-${i}`).id = `solution-property-${i+1}`;
+      document.getElementById(`solution-id-val-${i}`).id = `solution-id-val-${i+1}`;
+      document.getElementById(`solution-selector-number-${i}`).id = `solution-selector-number-${i+1}`;
+  }
+}
+
+function mixUnSlide(index) {
+  let max = userSolutions.solutions.length;
+  for(let i = index; i <= max; ++i){
+      document.getElementById(`solution-id-val-${i}`).textContent = i;
+      document.getElementById(`solution-selector-number-${i}`).textContent = i;
+      document.getElementById(`solution-selector-${i}`).id = `solution-selector-${i-1}`;
+  document.getElementById(`solution-selector-amount-${i}`).id = `solution-selector-amount-${i-1}`;
+    document.getElementById(`solution-selector-invalid-${i}`).id = `solution-selector-invalid-${i-1}`;
+      document.getElementById(`solution-remove-${i}`).id = `solution-remove-${i-1}`;
+      document.getElementById(`label-solution-selector-${i}`).parentNode.children[0].htmlFor = `label-solution-selector-${i-1}`;
+      document.getElementById(`label-solution-selector-${i}`).id = `label-solution-selector-${i-1}`;
+      document.getElementById(`solution-property-${i}`).id = `solution-property-${i-1}`;
+      document.getElementById(`solution-id-val-${i}`).id = `solution-id-val-${i-1}`;
+      document.getElementById(`solution-selector-number-${i}`).id = `solution-selector-number-${i-1}`;
+  }
 }
 
 function acid_num_reload(target) {
@@ -1092,6 +1181,14 @@ function genOptions() {
 
   return options;
 }
+function genTitrationOptions() {
+  let options= "";
+  userSolutions.solutions.forEach((sol, i) => {
+    options += `<option value=${i}>solution No.${i+1}</option>\n`;
+  });
+
+  return options;
+}
 
 function saveCookie() {
   document.cookie = "test=success";
@@ -1100,10 +1197,49 @@ function loadCookie() {
   console.log(document.cookie);
 }
 
-function mixReload() {
-  document.getElementById("mixing-boxes").innerHTML =
-    userSolutions.selectorHTML();
+function titrationReload(){
+    let elem = document.getElementById("titration-target-selector").innerHTML = genTitrationOptions();
 }
+
+function titration(){
+    let index = document.getElementById("titration-target-selector").value;
+    let newSolution;
+    userSolutions.solutions.map((s, i) =>{
+    if(!document.getElementById(`solution-selector-${i}`).checked){
+        return;
+    }
+    else if(newSolution == undefined){
+       newSolution = 
+         userSolutions.solutions[i].gage(
+           document.getElementById(`solution-selector-amount-${i}`).value/1000
+         );
+    }
+    else {
+       newSolution.concat(
+         userSolutions.solutions[i].gage(
+           document.getElementById(`solution-selector-amount-${i}`).value/1000
+         )
+       )
+        
+       console.log(newSolution);
+    }
+  });
+  if(newSolution?.volume){
+     let j = document.getElementById("titration-indicator-selector").value;
+     let element = document.getElementById("titrated-amount");
+     
+     element.textContent = (element.textContent-0)+newSolution.volume*1000;
+     userSolutions.solutions[index].concat(newSolution);
+     document.getElementById("indicator").style.backgroundColor = defaultIndicators.indicators[j].getColor(userSolutions.solutions[index].pH);
+     
+     document.getElementById(`solution-property-${index}`).innerHTML = userSolutions.solutions[index].propertyHTML(index);
+  }
+}
+
+function titrationReset(){
+    document.getElementById("titrated-amount").textContent = 0;
+}
+
 function mix() {
   let newSolution, i = userSolutions.solutions.length;
     
@@ -1130,18 +1266,40 @@ function mix() {
   });
   if(newSolution?.volume){
      userSolutions.solutions.push(newSolution);
+titrationReload();
      document.getElementById("solution-selections").insertAdjacentHTML("beforeend",
-     `<div class="solution-selection"><input class="selector" id="solution-selector-${i}" type="checkbox">solution No.${i+1}: <input class="amount" id="solution-selector-amount-${i}" type="text" value=0> mL<div class="hide-toggle2">
+     `<div class="solution-selection"><input class="selector" id="solution-selector-${i}" type="checkbox">solution No.<span id="solution-selector-number-${i}">${i+1}</span><span id="solution-selector-invalid-${i}" style="visibility:hidden">(invalid)</span>: <input class="amount" id="solution-selector-amount-${i}" type="text" value=0> mL<div class="hide-toggle2">
         <label for="label-solution-selector-${i}">溶液の詳細</label>
         <input type="checkbox" id="label-solution-selector-${i}" class="hiding-toggle"/>
         <div class="hidden-by-checked">` +
           newSolution.propertyHTML(i) +
-          "</div></div></div>");
+          `</div></div><input
+              type="button" 
+              class="solution-del" 
+              id="solution-remove-${i}"
+              value="削除" 
+              onclick="removeSelectionSolution(this);"
+            /></div>`);
   }
+}
+     
+function removeSelectionSolution(element){
+     let index = element.id.slice(16);
+     if(index >= userSolutions.defoLen){
+         userSolutions.remove(index);
+         titrationReload();
+
+  document.getElementById("solution-selections").children[index].remove();
+  console.log(userSolutions);
+  mixUnSlide(index+1);
+     }else{
+         submit(document.getElementsByClassName("submit")[index]);
+     }
 }
 
 let defaultPresetSet = [];
 let defaultSolutionSet = [];
+let defaultIndicatorSet = [];
 
 defaultPresetSet.push(
   new AcidPreset(1, [-10], 0, "過塩素酸(水中)", ["HClO4", "ClO4"])
@@ -1201,10 +1359,31 @@ defaultPresetSet.push(
 defaultPresetSet.push(
   new AcidPreset(1, [10.32], 0, "シアン化水素酸(水中)", ["HCN", "CN"])
 );
+    
+
+defaultIndicatorSet.push(
+    new Indicator("フェノールフタレイン", 3, [-0.5, 8, 9], ["#ff0000", "#ffffff", "#ff69b4", "ff1493"])
+)
+defaultIndicatorSet.push(
+    new Indicator("BTB", 4, [6, 6.5, 7.2, 7.6], ["#ffff00", "#9fff00", "#008000", "#2129ff", "#5000ff"])
+)
+defaultIndicatorSet.push(
+    new Indicator("メチルオレンジ", 3, [2.5, 3.1, 5], ["#ff4c00", "#ff9f81", "#ffa000", "#ffff00"])
+)
+
+    
+    function initialize(){
+        document.getElementById("titration-indicator-selector").innerHTML=defaultIndicators.genHTMLOptions();
+    }
 
 let defaultPresets = new AcidPresetCollecter(defaultPresetSet);
 let userPresets = new AcidPresetCollecter([]);
+    
+let defaultIndicators = new IndicatorCollecter(defaultIndicatorSet);
+let userIndicators = new IndicatorCollecter([]);
+
 
 let defaultSolutions = new SolutionCollecter(defaultSolutionSet);
 let userSolutions = new SolutionCollecter([]);
 let mixedSolutions = new SolutionCollecter([]);
+initialize();

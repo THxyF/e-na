@@ -33,6 +33,41 @@
       <div id="main-title">
         <h1>滴定をシミュレートできます</h1>
       </div>
+        <div id="manual">
+        <h1>使い方</h1>
+        <div class="hide-toggle">
+        <label for="label8">クリックして表示</label>
+        <input type="checkbox" id="label8"/>
+        <div class="hidden-by-checked">
+          <h2>1.溶液シミュレータ</h2>
+          <p>
+            "溶液を追加"ボタンを押すと、溶液のエディタが出てきます。
+            溶液の自己プロトリシス定数、加える酸や塩の量や種類を入力すると、その溶液の各イオンの濃度を計算します。
+            (ヒント1: アンモニアなどの塩基は共役酸を電荷の0でない酸として登録します。)
+            (ヒント2: 水酸化物イオンは水として登録してあります。)
+          </p>
+          <h2>2.プリセットエディタ</h2>
+          <p>
+            溶液シミュレータにおいて利用可能な酸のプリセットの一覧です。
+            また、ユーザー定義のプリセットを登録できます。
+            この時、入力するイオン式は電荷を除いたものにしてください。また、式中の数字は下付き小文字になります。
+              (例: 硫酸水素イオン(HSO<sub>4</sub>)の場合は"HSO4"としてください。)
+          </p>
+          <h2>3.滴定</h2>
+          <p>
+            滴定操作のシミュレーションができます。
+            まずは滴定に使う溶液を溶液シミュレータで登録してください。
+            何かしらの酸を入力し(投入量は0でも良い)、"適応"ボタンを押すとその溶液のステータスの"invalid"が消えます。
+              
+            次に、滴定する溶液を調製します。
+            項目の中から調製に使う溶液にチェックを付け、量を入力し、"分出/混合"ボタンを押します。
+            すると、新しい溶液が生成されるので、それを"滴定の対象"項目で選択し、適当な指示薬を選択したのち、
+            滴下する溶液にチェックを付け(この時調整に使った溶液のチェックを外すこと)、一度に滴下する量を入力し、
+            "滴下"ボタンを押します。滴下量は横に記録されます。
+          </p> 
+        </div>
+        </div>
+      </div>
       <div id="simulation">
         <div class="solutions"></div>
         <input
@@ -111,17 +146,26 @@
             <input
                 type="button"
                 id="mix"
-                value="混合開始"
+                value="分出/混合"
                 onclick="mix();"
               />
             <div id="titration">
-                <select id="titration-target-selector"></select>
+                滴定対象: <select id="titration-target-selector"></select>
+                指示薬: <select id="titration-indicator-selector"></select>
                 <input
                 type="button"
                 id="titration-button"
-                value="滴下開始"
+                value="滴下"
                 onclick="titration();"
                 />
+                <span id="titrated-amount">0</span> mL
+                <input
+                type="button"
+                id="titration-reset"
+                value="滴下量のリセット"
+                onclick="titrationReset();"
+                />
+                <div id="indicator" style="width:100px;height:100px;background-color: white;"></div>
             </div>
         </div></div>
       </div>

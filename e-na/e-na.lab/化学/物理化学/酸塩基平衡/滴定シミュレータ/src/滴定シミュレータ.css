@@ -63,7 +63,7 @@ footer{
 
 /*ボタン装飾*/
 .hide-toggle label {
-    padding: 15px;
+    padding: 5px;
     font-weight: bold;
     border: solid 2px black;
     cursor :pointer;
