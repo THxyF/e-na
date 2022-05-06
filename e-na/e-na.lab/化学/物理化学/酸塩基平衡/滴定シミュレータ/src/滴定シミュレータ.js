@@ -45,6 +45,10 @@ class Util {
     //console.log(array);
     return array;
   }
+    
+    static async sleep (ms){
+        return new Promise((resolve) => setTimeout(resolve, ms))
+    }
 }
 
 class Indicator{
@@ -58,6 +62,8 @@ class Indicator{
     getColor(pH){
         let index = this.pHs.findIndex(pHi => (pHi >= pH));
         if (index === -1)index = this.n;
+        
+        console.log(pH, index);
         
         return this.colors[index];
     }
@@ -161,7 +167,7 @@ class AcidInput extends Acid {
          [
          <span class="ion-name-val">
            ${
-             this.formulas
+             !this.name.startsWith("unknown")
                ? Util.encodeHTML(this.formulas[i], this.e - i)
                : "charge=" + (this.e - i)
            }
@@ -270,7 +276,7 @@ class Acids {
       }:\n`;
       acid.c.forEach((ci, i) => {
         str += `  [${
-          acid.formulas
+          !this.name.startsWith("unknown")
             ? Util.encodeHTML(acid.formulas[i], e - i)
             : "charge=" + (e - i)
         }]:${ci} M←${acid.c0[i]} M\n`;
@@ -365,7 +371,7 @@ class Solution extends Acids {
       }:\n`;
       acid.c.forEach((ci, i) => {
         str += `  [${
-          acid.formulas
+          !this.name.startsWith("unknown")
             ? Util.encodeHTML(acid.formulas[i], e - i)
             : "charge=" + (e - i)
         }]:${ci} M←${acid.c0[i]} M\n\t\t\t\t\t(${this.volume * ci} mol)\n\n`;
@@ -754,6 +760,11 @@ function get_acid_data(acids) {
         acid_data.push(userPresets.acidPresets[id.slice(1)].name);
         acid_data.push(userPresets.acidPresets[id.slice(1)].formulas);
       }
+    }
+    else {
+        let name = `unknown${Date.now()}`;
+        acid_data.push(name);
+        acid_data.push(new Array((acid_data[0]-0)+1).fill(0).map((x, i) => name+i));
     }
 
     acids_data.push(acid_data);
@@ -1198,7 +1209,7 @@ function loadCookie() {
 }
 
 function titrationReload(){
-    let elem = document.getElementById("titration-target-selector").innerHTML = genTitrationOptions();
+    document.getElementById("titration-target-selector").innerHTML = genTitrationOptions();
 }
 
 function titration(){
@@ -1227,17 +1238,90 @@ function titration(){
   if(newSolution?.volume){
      let j = document.getElementById("titration-indicator-selector").value;
      let element = document.getElementById("titrated-amount");
+     let m;
+     
+     if(chartIons.l === 0){
+        userSolutions.solutions[index].acids.forEach((acid, k) => {
+            acid.c.forEach((ci, l) => {
+                m = chartIons.ions.findIndex(cion => cion.formula === acid.formulas[l]);
+                if(m === -1){
+                    chartIons.ions.push({
+                        formula: acid.formulas[l],
+                        charge: acid.e-l,
+                        data: new Array(chartIons.l).fill(0).concat([Util.p(ci)])
+                    })
+                }
+                else chartIons.ions[m].data.push(Util.p(ci));
+            })
+        });
+
+        chartIons.labels.push(0);
+        chartIons.pHs.push(userSolutions.solutions[index].pH);
+        chartIons.l ++;
+     }
      
      element.textContent = (element.textContent-0)+newSolution.volume*1000;
      userSolutions.solutions[index].concat(newSolution);
      document.getElementById("indicator").style.backgroundColor = defaultIndicators.indicators[j].getColor(userSolutions.solutions[index].pH);
      
+     userSolutions.solutions[index].acids.forEach((acid, k) => {
+        acid.c.forEach((ci, l) => {
+            m = chartIons.ions.findIndex(cion => cion.formula === acid.formulas[l]);
+            if(m === -1){
+                chartIons.ions.push({
+                    formula: acid.formulas[l],
+                    charge: acid.e-l,
+                    data: new Array(chartIons.l).fill(0).concat([Util.p(ci)])
+                })
+            }
+            else chartIons.ions[m].data.push(Util.p(ci));
+        })
+     });
+
+     chartIons.labels.push(element.textContent-0);
+     chartIons.pHs.push(userSolutions.solutions[index].pH);
+     chartIons.l ++;
+
+     console.log(chartIons);
+     drawTitrationChart();
+     
      document.getElementById(`solution-property-${index}`).innerHTML = userSolutions.solutions[index].propertyHTML(index);
   }
 }
 
+function drawTitrationChart(){
+    let chartData = {labels:  chartIons.labels,
+            datasets: [
+                {
+            label: "pH",
+            data : chartIons.pHs,
+            borderColor: "#ff8080"
+         }]};
+    chartData.datasets = chartData.datasets.concat(chartIons.ions.map((ion, i) => {
+        
+        console.log(ion);
+        return {
+            data: ion.data,
+            label: ion.formula+"("+ion.charge+")",
+            borderColor: "#008080"
+        }
+    }));
+    
+    myChart.data = chartData;
+    
+    console.log(chartData);
+    myChart.update();
+}
+
 function titrationReset(){
     document.getElementById("titrated-amount").textContent = 0;
+    chartIons = {
+        l: 0,
+        labels: [],
+        pHs: [],
+        ions: []
+    };
+    drawTitrationChart();
 }
 
 function mix() {
@@ -1362,7 +1446,7 @@ defaultPresetSet.push(
     
 
 defaultIndicatorSet.push(
-    new Indicator("フェノールフタレイン", 3, [-0.5, 8, 9], ["#ff0000", "#ffffff", "#ff69b4", "ff1493"])
+    new Indicator("フェノールフタレイン", 3, [-0.5, 8, 9], ["#ff0000", "#ffffff", "#ff69b4", "#ff1493"])
 )
 defaultIndicatorSet.push(
     new Indicator("BTB", 4, [6, 6.5, 7.2, 7.6], ["#ffff00", "#9fff00", "#008000", "#2129ff", "#5000ff"])
@@ -1372,8 +1456,13 @@ defaultIndicatorSet.push(
 )
 
     
-    function initialize(){
+    async function initialize(){
         document.getElementById("titration-indicator-selector").innerHTML=defaultIndicators.genHTMLOptions();
+        
+        await Util.sleep(1000);
+        
+        ctx = document.getElementById("titration-graph").getContext('2d');
+        myChart = new Chart(ctx, lineChartData);
     }
 
 let defaultPresets = new AcidPresetCollecter(defaultPresetSet);
@@ -1386,4 +1475,36 @@ let userIndicators = new IndicatorCollecter([]);
 let defaultSolutions = new SolutionCollecter(defaultSolutionSet);
 let userSolutions = new SolutionCollecter([]);
 let mixedSolutions = new SolutionCollecter([]);
+    
+var chartIons = {
+    l: 0,
+    labels: [],
+    pHs: [],
+    ions: []
+};
+  
+let ctx, myChart;
+
+ var lineChartData = {
+        type: "line",
+        data: {
+            datasets:[{label: "none", data: [0]}],
+            labels:[0]
+        },
+        options: {
+            scales: {
+                xAxes: [{
+                    
+                }],
+                yAxes: [{
+                    ticks: {
+                        max: 15,
+                        min: 0,
+                        stepSize: 0.5
+                    },
+                    type: 'linear'
+                }]
+            }
+        }
+    }
 initialize();
